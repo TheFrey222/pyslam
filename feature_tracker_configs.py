@@ -209,6 +209,14 @@ class FeatureTrackerConfigs(object):
                        descriptor_type = FeatureDescriptorTypes.DISK, 
                        match_ratio_test = kRatioTest,
                        tracker_type = kTrackerType)
+
+    DENSEMATCHING = dict(num_features=kNumFeatures,                   
+                       num_levels = 1,                                  
+                       scale_factor = 1.2,                              
+                       detector_type = FeatureDetectorTypes.DENSEMATCHING, 
+                       descriptor_type = FeatureDescriptorTypes.DENSEMATCHING, 
+                       match_ratio_test = kRatioTest,
+                       tracker_type = kTrackerType)
     
     # =====================================
     # Descriptor-based 'trackers' with ORB2

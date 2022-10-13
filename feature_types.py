@@ -59,6 +59,7 @@ class FeatureDetectorTypes(Enum):
     R2D2        = 22  # [end-to-end] joint detector-descriptor - "R2D2: Repeatable and Reliable Detector and Descriptor"   
     KEYNET      = 23  # "Key.Net: Keypoint Detection by Handcrafted and Learned CNN Filters"
     DISK        = 24  # [end-to-end] joint detector-descriptor - "DISK: Learning local features with policy gradient"
+    DENSEMATCHING = 25 #
 
 class FeatureDescriptorTypes(Enum):
     NONE        = 0   # used for LK tracker (in main_vo.py)
@@ -91,7 +92,8 @@ class FeatureDescriptorTypes(Enum):
     KEYNET      = 27  # keynet descriptor is HARDNET (only with KEYNET detector) - "Key.Net: Keypoint Detection by Handcrafted and Learned CNN Filters"   
     BEBLID      = 28  # [binary] only descriptor - " BEBLID: Boosted Efficient Binary Local Image Descriptor"              
     DISK        = 29  # [end-to-end] joint detector-descriptor - "DISK: Learning local features with policy gradient"    
-    
+    DENSEMATCHING = 25 #
+
 class FeatureInfo(object): 
     norm_type = dict() 
     max_descriptor_distance = dict()   # initial reference max descriptor distances used by SLAM for locally searching matches around frame keypoints; 
@@ -115,7 +117,7 @@ class FeatureInfo(object):
     max_descriptor_distance[FeatureDescriptorTypes.ORB] = 100           # ORB    
     #
     norm_type[FeatureDescriptorTypes.ORB2] = cv2.NORM_HAMMING  
-    max_descriptor_distance[FeatureDescriptorTypes.ORB2] = 100          # ORB                   
+    max_descriptor_distance[FeatureDescriptorTypes.ORB2] = 100          # ORB2                   
     #
     norm_type[FeatureDescriptorTypes.BRISK] = cv2.NORM_HAMMING   
     max_descriptor_distance[FeatureDescriptorTypes.BRISK] = 200         # BRISK             
@@ -188,3 +190,6 @@ class FeatureInfo(object):
     #
     norm_type[FeatureDescriptorTypes.DISK] = cv2.NORM_L2   
     max_descriptor_distance[FeatureDescriptorTypes.DISK] = 3.1          # DISK   
+    #
+    norm_type[FeatureDescriptorTypes.DENSEMATCHING] = cv2.NORM_L2   
+    max_descriptor_distance[FeatureDescriptorTypes.DENSEMATCHING] = 3.1          # DENSEMATCHING   
