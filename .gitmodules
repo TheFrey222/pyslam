@@ -31,3 +31,6 @@
 [submodule "thirdparty/disk"]
 	path = thirdparty/disk
 	url = https://github.com/cvlab-epfl/disk.git
+[submodule "thirdparty/DenseMatching"]
+	path = thirdparty/DenseMatching
+	url = https://github.com/PruneTruong/DenseMatching.git

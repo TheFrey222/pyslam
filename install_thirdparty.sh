@@ -137,3 +137,18 @@ fi
 cd $STARTING_DIR
 
 
+print_blue "=================================================================="
+print_blue "Configuring and building thirdparty/DenseMatching ..."
+
+cd thirdparty
+cd DenseMatching
+
+git submodule update --init --recursive
+git submodule update --recursive --remote
+python3 -c "from admin.environment import create_default_local_file; create_default_local_file()"
+mkdir pre_trained_models
+cd pre_trained_models
+gdown --fuzzy https://drive.google.com/file/d/151X9ovbOG35tbPjioV5CYk_5GKQ8FErw/view # PDCNet_plus_megadepth
+
+cd $STARTING_DIR
+
