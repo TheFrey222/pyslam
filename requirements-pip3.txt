@@ -32,5 +32,6 @@ tqdm==4.43.0
 Werkzeug==1.0.0
 wrapt==1.12.1
 yacs==0.1.6
+scikit-build
 opencv-python
 opencv-contrib-python==3.4.2.16
