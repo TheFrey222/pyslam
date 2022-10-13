@@ -33,3 +33,11 @@ Werkzeug==1.0.0
 wrapt==1.12.1
 yacs==0.1.6
 scikit-build
+imageio 
+jpeg4py
+pandas 
+tqdm 
+gdown 
+pycocotools 
+timm
+cupy-cuda110
