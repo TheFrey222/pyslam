@@ -21,36 +21,86 @@ import sys
 import os
 import cv2 
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 import config
-config.cfg.set_lib('DenseMatching') 
+config.cfg.set_lib('densematching')
 
-from demo_superpoint import SuperPointFrontend
+import matplotlib.cm as cm
+from pathlib import Path
+import numpy as np
+env_path = os.path.join(os.path.dirname(__file__), 'thirdparty/DenseMatching')
+if env_path not in sys.path:
+    sys.path.append(env_path)
+from model_selection import model_type, pre_trained_model_types, select_model
+from datasets.util import pad_to_same_shape
+torch.set_grad_enabled(False)
+from utils_flow.pixel_wise_mapping import remap_using_flow_fields
+from utils_flow.visualization_utils import overlay_semantic_mask, make_sparse_matching_plot
+from utils_flow.util_optical_flow import flow_to_image  
+from models.inference_utils import estimate_mask
+from utils_flow.flow_and_mapping_operations import convert_flow_to_mapping
+from validation.utils import matches_from_flow
+from admin.stats import DotDict 
+
 from threading import RLock
-
 from utils_sys import Printer, is_opencv_version_greater_equal
+
+torch.set_grad_enabled(False)
 
 
 kVerbose = True   
 
 
-class SuperPointOptions:
-    def __init__(self, do_cuda=True): 
-        # default options from demo_superpoints
-        self.weights_path=config.cfg.root_folder + '/thirdparty/superpoint/superpoint_v1.pth'
-        self.nms_dist=4
-        self.conf_thresh=0.015
-        self.nn_thresh=0.7
-        
+class DenseMatchingOptions:
+    def __init__(self, do_cuda=True):
+        # default options from demo_single_pair.ipynb
+        self.model = 'PDCNet_plus'
+        self.pre_trained_model = 'megadepth'
+        flipping_condition = False 
+        self.global_optim_iter = 3
+        self.local_optim_iter = 7 
+        self.estimate_uncertainty = True 
+        self.confident_mask_type = "proba_interval_1_above_10"
+        path_to_pre_trained_models = config.cfg.root_folder + '/thirdparty/DenseMatching/pre_trained_models/'
+        self.reference_image = config.cfg.root_folder + "/images/frame0000.jpg"
+
+        if self.model not in model_type:
+            raise ValueError('The model that you chose is not valid: {}'.format(self.model))
+        if self.pre_trained_model not in pre_trained_model_types:
+            raise ValueError('The pre-trained model type that you chose is not valid: {}'.format(self.pre_trained_model))
+
+
+        # inference parameters for PDC-Net
+        network_type = self.model  # will only use these arguments if the network_type is 'PDCNet' or 'PDCNet_plus'
+        choices_for_multi_stage_types = ['d', 'h', 'ms']
+        multi_stage_type = 'h'
+        if multi_stage_type not in choices_for_multi_stage_types:
+            raise ValueError('The inference mode that you chose is not valid: {}'.format(multi_stage_type))
+
+        confidence_map_R =1.0
+        ransac_thresh = 1.0
+        mask_type = 'proba_interval_1_above_10'  # for internal homo estimation
+        homography_visibility_mask = True
+        scaling_factors = [0.5, 0.6, 0.88, 1, 1.33, 1.66, 2]
+        compute_cyclic_consistency_error = True  # here to compare multiple uncertainty 
+
+        # usually from argparse
+        self.args = DotDict({'network_type': network_type, 'multi_stage_type': multi_stage_type, 'confidence_map_R': confidence_map_R, 
+                        'ransac_thresh': ransac_thresh, 'mask_type': mask_type, 
+                        'homography_visibility_mask': homography_visibility_mask, 'scaling_factors': scaling_factors, 
+                        'compute_cyclic_consistency_error': compute_cyclic_consistency_error})
+
         use_cuda = torch.cuda.is_available() & do_cuda
         device = torch.device('cuda' if use_cuda else 'cpu')
         print('SuperPoint using ', device)        
-        self.cuda=use_cuda   
-    
-    
+        self.cuda=use_cuda 
+
+
 # convert matrix of pts into list of keypoints
 # N.B.: pts are - 3xN numpy array with corners [x_i, y_i, confidence_i]^T.
-def convert_superpts_to_keypoints(pts, size=1): 
+def convert_densematching_to_keypoints(pts, size=1): 
     kps = []
     if pts is not None: 
         # convert matrix [Nx2] of pts into list of keypoints  
@@ -69,41 +119,57 @@ def transpose_des(des):
 
 
 # interface for pySLAM 
-class SuperPointFeature2D: 
+class DenseMatchingFeature2D: 
     def __init__(self, do_cuda=True): 
         self.lock = RLock()
-        self.opts = SuperPointOptions(do_cuda)
-        print(self.opts)        
+        self.opts = DenseMatchingOptions(do_cuda)
+        print(self.opts)
         
         print('SuperPointFeature2D')
         print('==> Loading pre-trained network.')
         # This class runs the SuperPoint network and processes its outputs.
-        self.fe = SuperPointFrontend(weights_path=self.opts.weights_path,
-                                nms_dist=self.opts.nms_dist,
-                                conf_thresh=self.opts.conf_thresh,
-                                nn_thresh=self.opts.nn_thresh,
-                                cuda=self.opts.cuda)
+        # define network and load network weights
+        self.network, self.estimate_uncertainty = select_model(self.opts.model, 
+                                                               self.opts.pre_trained_model, 
+                                                               self.opts.args, 
+                                                               self.opts.global_optim_iter, 
+                                                               self.opts.local_optim_iter, 
+                                                               path_to_pre_trained_models=self.opts.path_to_pre_trained_models)
         print('==> Successfully loaded pre-trained network.')
                         
         self.pts = []
         self.kps = []        
         self.des = []
         self.heatmap = [] 
-        self.frame = None 
-        self.frameFloat = None 
+        self.query_image = None
         self.keypoint_size = 20  # just a representative size for visualization and in order to convert extracted points to cv2.KeyPoint 
           
     # compute both keypoints and descriptors       
     def detectAndCompute(self, frame, mask=None):  # mask is a fake input 
         with self.lock: 
-            self.frame = frame 
-            self.frameFloat  = (frame.astype('float32') / 255.)
-            self.pts, self.des, self.heatmap = self.fe.run(self.frameFloat)
+            self.query_image, self.reference_image = pad_to_same_shape(frame, self.opts.reference_image)
+
+            query_image_ = torch.from_numpy(self.query_image_).permute(2, 0, 1).unsqueeze(0)
+            reference_image_ = torch.from_numpy(self.reference_image_).permute(2, 0, 1).unsqueeze(0)
+
+            pred = self.network.get_matches_and_confidence(target_img=query_image_, 
+                                                           source_img=reference_image_, 
+                                                           confident_mask_type=self.opts.confident_mask_type)
+
+            self.pts = pred['kp_source']
+            mkpts_t = pred['kp_target']
+            confidence = pred['confidence_value']
+
+            # select only a subset of matches (the most confident)
+            self.pts = self.pts[:1000]
+            mkpts_t = mkpts_t[:1000]
+            confidence = confidence[:1000]
+
             # N.B.: pts are - 3xN numpy array with corners [x_i, y_i, confidence_i]^T.
             #print('pts: ', self.pts.T)
-            self.kps = convert_superpts_to_keypoints(self.pts.T, size=self.keypoint_size)
+            self.kps = convert_densematching_to_keypoints(self.pts.T, size=self.keypoint_size)
             if kVerbose:
-                print('detector: SUPERPOINT, #features: ', len(self.kps), ', frame res: ', frame.shape[0:2])      
+                print('detector: DenseMatching, #features: ', len(self.kps), ', frame res: ', frame.shape[0:2])      
             return self.kps, transpose_des(self.des)                 
             
     # return keypoints if available otherwise call detectAndCompute()    
@@ -120,4 +186,3 @@ class SuperPointFeature2D:
                 Printer.orange('WARNING: SUPERPOINT is recomputing both kps and des on last input frame', frame.shape)
                 self.detectAndCompute(frame)
             return self.kps, transpose_des(self.des)
-           
