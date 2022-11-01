@@ -24,31 +24,21 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import config
-config.cfg.set_lib('densematching')
-
 import matplotlib.cm as cm
 from pathlib import Path
 import numpy as np
-env_path = os.path.join(os.path.dirname(__file__), 'thirdparty/DenseMatching')
-if env_path not in sys.path:
-    sys.path.append(env_path)
-from model_selection import model_type, pre_trained_model_types, select_model
-from datasets.util import pad_to_same_shape
-torch.set_grad_enabled(False)
-from utils_flow.pixel_wise_mapping import remap_using_flow_fields
-from utils_flow.visualization_utils import overlay_semantic_mask, make_sparse_matching_plot
-from utils_flow.util_optical_flow import flow_to_image  
-from models.inference_utils import estimate_mask
-from utils_flow.flow_and_mapping_operations import convert_flow_to_mapping
-from validation.utils import matches_from_flow
-from admin.stats import DotDict 
 
 from threading import RLock
 from utils_sys import Printer, is_opencv_version_greater_equal
 
-torch.set_grad_enabled(False)
+import config
+config.cfg.set_lib('densematching')
 
+from model_selection import model_type, pre_trained_model_types, select_model
+from datasets.util import pad_to_same_shape
+from admin.stats import DotDict 
+
+torch.set_grad_enabled(False)
 
 kVerbose = True   
 
