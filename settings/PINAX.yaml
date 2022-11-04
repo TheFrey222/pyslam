@@ -10,10 +10,10 @@ Viewer.ViewpointX: 0
 Viewer.ViewpointY: -0.7
 Viewer.ViewpointZ: -1.8
 Viewer.ViewpointF: 500
-Camera.fx: 742.0409886037315
-Camera.fy: 737.1159377944148
-Camera.cx: 321.2452585606904
-Camera.cy: 240.0793646078194
+Camera.fx: 704.87801030192429
+Camera.fy: 732.25191361462043
+Camera.cx: 322.80718937098419
+Camera.cy: 230.09800586885618
 Camera.k1: 0.0
 Camera.k2: 0.0
 Camera.p1: 0.0
