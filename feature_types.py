@@ -92,7 +92,7 @@ class FeatureDescriptorTypes(Enum):
     KEYNET      = 27  # keynet descriptor is HARDNET (only with KEYNET detector) - "Key.Net: Keypoint Detection by Handcrafted and Learned CNN Filters"   
     BEBLID      = 28  # [binary] only descriptor - " BEBLID: Boosted Efficient Binary Local Image Descriptor"              
     DISK        = 29  # [end-to-end] joint detector-descriptor - "DISK: Learning local features with policy gradient"    
-    DENSEMATCHING = 25 #
+    DENSEMATCHING = 30 #
 
 class FeatureInfo(object): 
     norm_type = dict() 
