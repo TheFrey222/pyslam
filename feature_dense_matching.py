@@ -124,9 +124,9 @@ class DenseMatchingFeature2D:
                                                                self.opts.args, 
                                                                self.opts.global_optim_iter, 
                                                                self.opts.local_optim_iter, 
-                                                               path_to_pre_trained_models=self.opts.path_to_pre_trained_models)
+                                                               path_to_pre_trained_models=self.opts.path_to_pre_trained_models) 
         print('==> Successfully loaded pre-trained network.')
-                        
+
         self.pts = []
         self.kps = []        
         self.des = []
@@ -137,10 +137,15 @@ class DenseMatchingFeature2D:
     # compute both keypoints and descriptors       
     def detectAndCompute(self, frame, mask=None):  # mask is a fake input 
         with self.lock: 
+            Printer.green(f'type(frame): {type(frame)}')
+            Printer.green(f'type(self.opts.reference_image): {type(self.opts.reference_image)}')
+            if type(self.opts.reference_image) == str:
+                self.opts.reference_image = frame
+            Printer.green(f'self.opts.reference_image.shape: {self.opts.reference_image.shape}')
             self.query_image, self.reference_image = pad_to_same_shape(frame, self.opts.reference_image)
 
-            query_image_ = torch.from_numpy(self.query_image_).permute(2, 0, 1).unsqueeze(0)
-            reference_image_ = torch.from_numpy(self.reference_image_).permute(2, 0, 1).unsqueeze(0)
+            query_image_ = torch.from_numpy(self.query_image).permute(2, 0, 1).unsqueeze(0)
+            reference_image_ = torch.from_numpy(self.reference_image).permute(2, 0, 1).unsqueeze(0)
 
             pred = self.network.get_matches_and_confidence(target_img=query_image_, 
                                                            source_img=reference_image_, 
@@ -156,7 +161,7 @@ class DenseMatchingFeature2D:
             confidence = confidence[:1000]
 
             # N.B.: pts are - 3xN numpy array with corners [x_i, y_i, confidence_i]^T.
-            #print('pts: ', self.pts.T)
+            print('pts: ', self.pts.T)
             self.kps = convert_densematching_to_keypoints(self.pts.T, size=self.keypoint_size)
             if kVerbose:
                 print('detector: DenseMatching, #features: ', len(self.kps), ', frame res: ', frame.shape[0:2])      

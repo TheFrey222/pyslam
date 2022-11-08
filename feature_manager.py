@@ -481,7 +481,7 @@ class FeatureManager(object):
             #       
         elif self.detector_type == FeatureDetectorTypes.DENSEMATCHING:       
             self.num_levels = 1 # force 
-            self.need_color_image = False               
+            self.need_color_image = True               
             self._feature_detector = DenseMatchingFeature2D()          
             #    
             #                                                                                                                                        
