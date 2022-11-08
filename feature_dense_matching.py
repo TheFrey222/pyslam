@@ -17,6 +17,9 @@
 * along with PYSLAM. If not, see <http://www.gnu.org/licenses/>.
 """
 
+import config
+config.cfg.set_lib('densematching',prepend=True)
+
 import sys
 import os
 import cv2 
@@ -31,12 +34,9 @@ import numpy as np
 from threading import RLock
 from utils_sys import Printer, is_opencv_version_greater_equal
 
-import config
-config.cfg.set_lib('densematching')
-
-from model_selection import model_type, pre_trained_model_types, select_model
-from datasets.util import pad_to_same_shape
-from admin.stats import DotDict 
+from DenseMatching.model_selection import model_type, pre_trained_model_types, select_model
+from DenseMatching.datasets.util import pad_to_same_shape
+from DenseMatching.admin.stats import DotDict 
 
 torch.set_grad_enabled(False)
 
@@ -53,7 +53,7 @@ class DenseMatchingOptions:
         self.local_optim_iter = 7 
         self.estimate_uncertainty = True 
         self.confident_mask_type = "proba_interval_1_above_10"
-        path_to_pre_trained_models = config.cfg.root_folder + '/thirdparty/DenseMatching/pre_trained_models/'
+        self.path_to_pre_trained_models = config.cfg.root_folder + '/thirdparty/DenseMatching/pre_trained_models/'
         self.reference_image = config.cfg.root_folder + "/images/frame0000.jpg"
 
         if self.model not in model_type:
