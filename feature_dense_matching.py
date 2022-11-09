@@ -174,6 +174,15 @@ class DenseMatchingFeature2D:
             Printer.cyan('pts: ', self.pts)
             Printer.cyan('type: ', type(self.pts))
             Printer.cyan('shape: ', self.pts.shape)
+            Printer.cyan('conf: ', confidence_values)
+            Printer.cyan('type: ', type(confidence_values))
+            Printer.cyan('shape: ', confidence_values.shape)
+            
+            np.append(self.pts, confidence_values, axis=1)
+            
+            Printer.cyan('pts: ', self.pts)
+            Printer.cyan('type: ', type(self.pts))
+            Printer.cyan('shape: ', self.pts.shape)
             
             try:
                 self.kps = convert_densematching_to_keypoints(self.pts.T, size=self.keypoint_size)
