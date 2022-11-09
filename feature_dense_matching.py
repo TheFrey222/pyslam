@@ -95,9 +95,9 @@ def convert_densematching_to_keypoints(pts, size=1):
     if pts is not None: 
         # convert matrix [Nx2] of pts into list of keypoints  
         if is_opencv_version_greater_equal(4,5,3):
-            kps = [ cv2.KeyPoint(p[0], p[1], size=size, response=p[2]) for p in pts ]            
+            kps = [ cv2.KeyPoint(p[0], p[1], size=size, response=p[2]) for p in pts ]
         else: 
-            kps = [ cv2.KeyPoint(p[0], p[1], _size=size, _response=p[2]) for p in pts ]                      
+            kps = [ cv2.KeyPoint(p[0], p[1], _size=size, _response=p[2]) for p in pts ]
     return kps         
 
 
@@ -151,9 +151,11 @@ class DenseMatchingFeature2D:
             self.pts = pred['kp_source']
             mkpts_ref = pred['kp_target']
             confidence_values = pred['confidence_value']
-            self.keypoint_size = len(self.pts)
-
-            print('Found {} confident matches'.format(self.keypoint_size))
+            Printer.cyan(f'Found {len(self.pts)} confident matches')
+            Printer.cyan(f'Confident matches average: {np.average(confidence_values)}')
+            Printer.cyan(f'Confident matches mean: {np.mean(confidence_values)}')
+            Printer.cyan(f'Confident matches max: {np.max(confidence_values)}')
+            Printer.cyan(f'Confident matches min: {np.min(confidence_values)}')
 
             sort_index = np.argsort(np.array(confidence_values)).tolist()[::-1]  # from highest to smallest
             confidence_values = np.array(confidence_values)[sort_index]
@@ -171,12 +173,16 @@ class DenseMatchingFeature2D:
             mkpts_ref = mkpts_ref[:k_top]
             confidence_values = confidence_values[:k_top]
             confidence_values = confidence_values.reshape((len(confidence_values),1))
-            self.kps = convert_densematching_to_keypoints(self.pts.T, size=self.keypoint_size)
-            self.des = np.zeros((len(self.kps),1))
+            Printer.yellow(f"pts.shape: {self.pts.shape}")
+            self.pts = np.append(self.pts, confidence_values, axis=1)
+            Printer.yellow(f"pts.shape: {self.pts.shape}")
+            self.kps = convert_densematching_to_keypoints(self.pts, size=self.keypoint_size)
+            self.des = np.zeros((1,len(self.kps)))
+            Printer.green('\nFound {} keypoints'.format(len(self.kps)))
                 
             if kVerbose:
                 print('detector: DenseMatching, #features: ', len(self.kps), ', frame res: ', frame.shape[0:2])      
-            return self.kps, transpose_des(self.des)               
+            return self.kps, transpose_des(self.des) 
             
     # return keypoints if available otherwise call detectAndCompute()    
     def detect(self, frame, mask=None):  # mask is a fake input  
