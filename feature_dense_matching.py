@@ -137,11 +137,8 @@ class DenseMatchingFeature2D:
     # compute both keypoints and descriptors       
     def detectAndCompute(self, frame, mask=None):  # mask is a fake input 
         with self.lock: 
-            Printer.green(f'type(frame): {type(frame)}')
-            Printer.green(f'type(self.opts.reference_image): {type(self.opts.reference_image)}')
             if type(self.opts.reference_image) == str:
                 self.opts.reference_image = frame
-            Printer.green(f'self.opts.reference_image.shape: {self.opts.reference_image.shape}')
             self.query_image, self.reference_image = pad_to_same_shape(frame, self.opts.reference_image)
 
             query_image_ = torch.from_numpy(self.query_image).permute(2, 0, 1).unsqueeze(0)
@@ -152,17 +149,37 @@ class DenseMatchingFeature2D:
                                                            confident_mask_type=self.opts.confident_mask_type)
 
             self.pts = pred['kp_source']
-            mkpts_t = pred['kp_target']
-            confidence = pred['confidence_value']
+            mkpts_ref = pred['kp_target']
+            confidence_values = pred['confidence_value']
 
-            # select only a subset of matches (the most confident)
-            self.pts = self.pts[:1000]
-            mkpts_t = mkpts_t[:1000]
-            confidence = confidence[:1000]
+            print('Found {} confident matches'.format(len(self.pts)))
+
+            sort_index = np.argsort(np.array(confidence_values)).tolist()[::-1]  # from highest to smallest
+            confidence_values = np.array(confidence_values)[sort_index]
+            self.pts = np.array(self.pts)[sort_index]
+            mkpts_ref = np.array(mkpts_ref)[sort_index]
+
+            if len(self.pts) < 5:
+                self.pts = np.empty([0, 2], dtype=np.float32)
+                mkpts_ref = np.empty([0, 2], dtype=np.float32)
+                confidence_values = np.empty([0], dtype=np.float32)
+                
+            # plot top 10000
+            k_top = 10000
+            self.pts = self.pts[:k_top]
+            mkpts_ref = mkpts_ref[:k_top]
+            confidence_values = confidence_values[:k_top]
 
             # N.B.: pts are - 3xN numpy array with corners [x_i, y_i, confidence_i]^T.
-            print('pts: ', self.pts.T)
-            self.kps = convert_densematching_to_keypoints(self.pts.T, size=self.keypoint_size)
+            Printer.cyan('pts: ', self.pts)
+            Printer.cyan('type: ', type(self.pts))
+            Printer.cyan('shape: ', self.pts.shape)
+            
+            try:
+                self.kps = convert_densematching_to_keypoints(self.pts.T, size=self.keypoint_size)
+            except:
+                return
+                
             if kVerbose:
                 print('detector: DenseMatching, #features: ', len(self.kps), ', frame res: ', frame.shape[0:2])      
             return self.kps, transpose_des(self.des)                 
