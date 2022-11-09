@@ -151,8 +151,9 @@ class DenseMatchingFeature2D:
             self.pts = pred['kp_source']
             mkpts_ref = pred['kp_target']
             confidence_values = pred['confidence_value']
+            self.keypoint_size = len(self.pts)
 
-            print('Found {} confident matches'.format(len(self.pts)))
+            print('Found {} confident matches'.format(self.keypoint_size))
 
             sort_index = np.argsort(np.array(confidence_values)).tolist()[::-1]  # from highest to smallest
             confidence_values = np.array(confidence_values)[sort_index]
@@ -169,29 +170,13 @@ class DenseMatchingFeature2D:
             self.pts = self.pts[:k_top]
             mkpts_ref = mkpts_ref[:k_top]
             confidence_values = confidence_values[:k_top]
-
-            # N.B.: pts are - 3xN numpy array with corners [x_i, y_i, confidence_i]^T.
-            Printer.cyan('pts: ', self.pts)
-            Printer.cyan('type: ', type(self.pts))
-            Printer.cyan('shape: ', self.pts.shape)
-            Printer.cyan('conf: ', confidence_values)
-            Printer.cyan('type: ', type(confidence_values))
-            Printer.cyan('shape: ', confidence_values.shape)
-            
-            np.append(self.pts, confidence_values, axis=1)
-            
-            Printer.cyan('pts: ', self.pts)
-            Printer.cyan('type: ', type(self.pts))
-            Printer.cyan('shape: ', self.pts.shape)
-            
-            try:
-                self.kps = convert_densematching_to_keypoints(self.pts.T, size=self.keypoint_size)
-            except:
-                return
+            confidence_values = confidence_values.reshape((len(confidence_values),1))
+            self.kps = convert_densematching_to_keypoints(self.pts.T, size=self.keypoint_size)
+            self.des = np.zeros((len(self.kps),1))
                 
             if kVerbose:
                 print('detector: DenseMatching, #features: ', len(self.kps), ', frame res: ', frame.shape[0:2])      
-            return self.kps, transpose_des(self.des)                 
+            return self.kps, transpose_des(self.des)               
             
     # return keypoints if available otherwise call detectAndCompute()    
     def detect(self, frame, mask=None):  # mask is a fake input  
