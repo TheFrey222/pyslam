@@ -13,7 +13,11 @@ thirdparty/pangolin
 matches.txt 
 map.png
 .vscode 
+images/tiefenbrunnen1
+images/tiefenbrunnen2
 videos/webcam
+videos/tiefenbrunnen1
+videos/tiefenbrunnen2
 
 kf_info.log 
 local_mapping.log 
