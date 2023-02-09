@@ -22,12 +22,12 @@ Camera.k3: 0.0
 Camera.width: 640
 Camera.height: 480
 Camera.fps: 30.0
-Camera.bf: 40.0
+Camera.bf: 42.4748611514
 Camera.RGB: 0
 ThDepth: 60.0
 DepthMapFactor: 1.0
-ORBextractor.nFeatures: 1000
+ORBextractor.nFeatures: 500
 ORBextractor.scaleFactor: 1.2
 ORBextractor.nLevels: 8
-ORBextractor.iniThFAST: 20
+ORBextractor.iniThFAST: 15
 ORBextractor.minThFAST: 7

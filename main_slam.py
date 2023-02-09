@@ -52,6 +52,17 @@ from parameters import Parameters
 import multiprocessing as mp 
 
 
+class Traj:
+    def __init__(self) -> None:
+        self.ses = []        
+    def append(self, t, q):
+        self.ses.append(f'{t[0]} {t[1]} {t[2]} {q.x()} {q.y()} {q.z()} {q.w()}\n')
+    def save(self, file_path):
+        with open(file_path, 'w') as f:
+            for s in self.ses:
+                f.write(s)
+
+
 if __name__ == "__main__":
 
     config = Config()
@@ -73,7 +84,7 @@ if __name__ == "__main__":
 
     # select your tracker configuration (see the file feature_tracker_configs.py) 
     # FeatureTrackerConfigs: SHI_TOMASI_ORB, FAST_ORB, ORB, ORB2, ORB2_FREAK, ORB2_BEBLID, BRISK, AKAZE, FAST_FREAK, SIFT, ROOT_SIFT, SURF, SUPERPOINT, FAST_TFEAT, CONTEXTDESC
-    tracker_config = FeatureTrackerConfigs.DENSEMATCHING
+    tracker_config = FeatureTrackerConfigs.ORB2
     tracker_config['num_features'] = num_features
     tracker_config['tracker_type'] = tracker_type
     
@@ -85,6 +96,8 @@ if __name__ == "__main__":
     time.sleep(1) # to show initial messages 
 
     viewer3D = Viewer3D()
+
+    TRAJ = Traj()
     
     if platform.system()  == 'Linux':    
         display2d = Display2D(cam.width, cam.height)  # pygame interface 
@@ -113,7 +126,8 @@ if __name__ == "__main__":
             if img is not None:
                 time_start = time.time()                  
                 slam.track(img, img_id, timestamp)  # main SLAM function 
-                                
+                TRAJ.append(slam.tracking.f_cur.tcw, slam.tracking.f_cur.quaternion)      
+                TRAJ.save('output.txt')
                 # 3D display (map display)
                 if viewer3D is not None:
                     viewer3D.draw_map(slam)
@@ -147,7 +161,7 @@ if __name__ == "__main__":
                 duration = time.time()-time_start 
                 if(frame_duration > duration):
                     print('sleeping for frame')
-                    time.sleep(frame_duration-duration)        
+                    time.sleep(frame_duration-duration)  
                     
             img_id += 1  
         else:
